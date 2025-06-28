@@ -22,9 +22,10 @@ typedef struct state  {
 typedef struct frag {
 
   state* start;
-  state* out;
+  state** out;
 
 } frag;
+
 
 state* assemble_nfa(const char* regexp);
 

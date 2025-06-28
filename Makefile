@@ -3,7 +3,7 @@ BUILDDIR=build
 DEPFLAGS=-MP -MD
 CODEDIRS=./src
 INCDIRS=./include
-CFLAGS=-Wall -Wextra -Wpedantic $(foreach D,$(INCDIRS),-I$(D)) $(DEPFLAGS)
+CFLAGS=-g -Wall -Wextra -Wpedantic $(foreach D,$(INCDIRS),-I$(D)) $(DEPFLAGS)
 
 CFILES=$(foreach D, $(CODEDIRS), $(wildcard $(D)/*.c))
 

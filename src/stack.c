@@ -13,6 +13,10 @@ void stack_delete(frag_stack* stack) {
   free(stack->elems);
 }
 
+size_t stack_size(frag_stack* stack) {
+  return stack->size;
+}
+
 void stack_push(frag_stack* stack, frag elem) {
 
   if (stack->idx >= stack->size) {
@@ -25,9 +29,9 @@ void stack_push(frag_stack* stack, frag elem) {
 int stack_pop(frag_stack* stack, frag* out) {
 
   if (!out || !stack->idx) {
-    return 0;
+    return 1;
   }
 
-  *out = stack->elems[stack->idx];
-  return 1;
+  *out = stack->elems[--stack->idx];
+  return 0;
 }

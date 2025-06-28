@@ -22,4 +22,6 @@ void stack_push(frag_stack* stack, frag elem);
 
 int stack_pop(frag_stack* stack, frag* out);
 
+size_t stack_size(frag_stack* stack);
+
 #endif
