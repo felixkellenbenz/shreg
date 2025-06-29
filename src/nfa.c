@@ -26,30 +26,71 @@ frag make_frag(state* start, state** out) {
   return f;
 }
 
+// TODO: Handle cases where the stack is empty 
+//       - validate regex before so stack is never empty
 state* assemble_nfa(const char* regexp) {
 
   size_t len = strlen(regexp);  
   state* s;
-  frag expr_left = start_frag, expr_right;
+  frag expr_left, expr_right;
   frag_stack stack = stack_init(1000);
+  bool disjunction_flag = 0;
 
+  stack_push(&stack, start_frag);
 
   for (size_t i = 0; i < len; i++) {
 
     switch (regexp[i]) {
-
-      case '|':
+      case '(': 
+        s = make_state(0, EPS_SINGLE, NULL, NULL);
+       
+        stack_push(&stack, make_frag(s, &s->out_left)); 
 
         break;
-      case '*':
+      case ')':
+        stack_pop(&stack, &expr_right);
+        stack_pop(&stack, &expr_left); 
 
+        if (!disjunction_flag) {
+          *expr_left.out = expr_right.start;
+
+          stack_push(&stack, make_frag(expr_left.start, expr_right.out));
+        } else {
+          frag before;
+          stack_pop(&stack, &before);
+
+          state* ending = make_state(0, EPS_SINGLE, NULL, NULL);         
+
+          s = make_state(0, EPS_SPLIT, expr_left.start, expr_right.start);          
+
+          *before.out = s;  
+          *expr_left.out = ending;
+          *expr_right.out = ending;
+
+          stack_push(&stack, make_frag(before.start, &ending->out_left));
+        }
+
+        disjunction_flag = 0;
+        break;
+      case '|':
+        s = make_state(0, EPS_SINGLE, NULL, NULL);
+       
+        stack_push(&stack, make_frag(s, &s->out_left)); 
+        disjunction_flag = 1;
+
+        break;
+      case '*': 
+        stack_pop(&stack, &expr_left);
+
+        s = make_state(0, EPS_SPLIT, expr_left.start, NULL);
+        *expr_left.out = s;
+
+        stack_push(&stack, make_frag(s, &s->out_right));
         break;
       default:
         s = make_state(regexp[i], SINGLE, NULL, NULL); 
          
-        if (stack_size(&stack)) {
-          stack_pop(&stack, &expr_left);
-        }
+        stack_pop(&stack, &expr_left);
 
         *expr_left.out = s;
          
@@ -57,12 +98,9 @@ state* assemble_nfa(const char* regexp) {
         break;
     }
   }
-  
 
+  stack_pop(&stack, &expr_left);
+  *expr_left.out = &match_state;
 
-
-
-
-
-  return NULL;
+  return expr_left.start;
 }
