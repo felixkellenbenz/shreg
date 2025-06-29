@@ -4,9 +4,10 @@
 #define NFA_H
 
 typedef enum state_type {
-  SPLIT,
-  ACCEPT,
   SINGLE,
+  EPS_SINGLE,
+  EPS_SPLIT,
+  ACCEPT
 } state_type;
 
 typedef struct state  {

@@ -1,4 +1,6 @@
 compile_commands.json
 TODO.txt
+src/*.o
+src/*.d
 build/
 .cache/
