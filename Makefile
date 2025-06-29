@@ -1,14 +1,14 @@
 CC=gcc
-BUILDDIR=build
-DEPFLAGS=-MP -MD
-CODEDIRS=./src
-INCDIRS=./include
-CFLAGS=-g -Wall -Wextra -Wpedantic $(foreach D,$(INCDIRS),-I$(D)) $(DEPFLAGS)
+BUILD_DIR=./build/
+DEP_FLAGS=-MP -MD
+SRC_DIR=./src/
+INCLUDE_DIR=./include/
+CFLAGS=-g -Wall -Wextra -Wpedantic $(foreach D,$(INCLUDE_DIR),-I$(D)) $(DEP_FLAGS)
 
-CFILES=$(foreach D, $(CODEDIRS), $(wildcard $(D)/*.c))
+C_FILES=$(foreach D, $(SRC_DIR), $(wildcard $(D)*.c))
 
-OBJECTS=$(patsubst %.c,%.o,$(CFILES))
-DEPFILES=$(patsubst %.c,%.d,$(CFILES))
+OBJECTS=$(patsubst %.c,$(BUILD_DIR)%.o,$(C_FILES))
+DEPFILES=$(patsubst %.c,$(BUILD_DIR)%.d,$(C_FILES))
 
 BINARY=shreg
 
@@ -18,8 +18,11 @@ $(BINARY): $(OBJECTS)
 	$(CC) -o $@ $^
 
 # generic rule how to make *.o files
-%.o: %.c
+$(BUILD_DIR)%.o: %.c create_build_dir
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -rf $(BINARY) $(OBJECTS) $(DEPFILES)
+	rm -rf $(BUILD_DIR) $(BINARY)
+
+create_build_dir:
+	$(foreach D, $(SRC_DIR), $(shell mkdir -p $(BUILD_DIR)$(D)))
