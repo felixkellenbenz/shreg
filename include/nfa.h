@@ -30,4 +30,6 @@ typedef struct frag {
 
 state* assemble_nfa(const char* regexp);
 
+void destroy_nfa(state* nfa);
+
 #endif
