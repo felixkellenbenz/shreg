@@ -1,7 +1,8 @@
-#include <stdint.h>
-
 #ifndef NFA_H 
 #define NFA_H
+
+#include <stdbool.h>
+#include <stdint.h>
 
 typedef enum state_type {
   SINGLE,
@@ -17,6 +18,11 @@ typedef struct state  {
 
   struct state* out_left;
   struct state* out_right;
+
+  // this is for checking if a state was already visited 
+  // when adding them to the free queue
+  // this should not be part of the state itself
+  bool visited;
 
 } state;
 

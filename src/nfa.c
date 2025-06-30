@@ -5,10 +5,8 @@
 #include "nfa.h"
 #include "stack.h"
 
-// match state will be needed in matcher.c
-state match_state = {0, ACCEPT, NULL, NULL};
-
-static state start_state = {0, EPS_SINGLE, NULL, NULL};
+static state match_state = {0, ACCEPT,NULL, NULL, false};
+static state start_state = {0, EPS_SINGLE, NULL, NULL, false};
 static frag start_frag = {&start_state, &start_state.out_left};
 static size_t number_states = 2;
 
@@ -20,6 +18,7 @@ static state* make_state(char c, state_type type,
   s->type = type;
   s->out_left = out_left;
   s->out_right = out_right;
+  s->visited = false;
   number_states++;
 
   return s;
@@ -77,6 +76,7 @@ static void handle_closing_paren(frag_stack* stack, bool disjunction_flag) {
 
 // TODO: Handle cases where the stack is empty 
 //       - validate regex before, so stack is never empty
+//       - fix precedence issue, currently concat has priority over *
 state* assemble_nfa(const char* regexp) {
 
   size_t len = strlen(regexp);  
@@ -121,12 +121,11 @@ state* assemble_nfa(const char* regexp) {
         break;
       default:
         s = make_state(regexp[i], SINGLE, NULL, NULL); 
-         
+        
         stack_pop(&stack, &expr_left);
-
         *expr_left.out = s;
-         
         stack_push(&stack, make_frag(expr_left.start, &s->out_left));
+         
         break;
     }
   }
@@ -149,11 +148,13 @@ void destroy_nfa(state* nfa) {
   while (current->out_left || current->out_right) {
     current = all_states[take_index++];
 
-    if (current->out_left) {
+    if (current->out_left && !current->out_left->visited) {
+      current->out_left->visited = true;
       all_states[insert_idx++] = current->out_left;
     } 
 
-    if (current->out_right) {
+    if (current->out_right && !current->out_right->visited) {
+      current->out_right->visited = true;
       all_states[insert_idx++] =  current->out_right;
     }
   }

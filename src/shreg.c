@@ -2,12 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "matcher.h"
 #include "nfa.h"
 
 #define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
-const char* preprocess(const char* s);
+char* preprocess(const char* s);
 
 int main(int argc, char** argv) {
 
@@ -16,16 +18,23 @@ int main(int argc, char** argv) {
     printf(" please provide a regex and a string\n");
   }  
 
-  const char* regexp = preprocess(argv[1]);
+  char* regexp = preprocess(argv[1]);
   const char* input = argv[2];
   state* nfa = assemble_nfa(regexp);
+  if (match_nfa(nfa, input)) {
+    printf(ANSI_COLOR_GREEN "OK:" ANSI_COLOR_RESET " %s matches %s\n", input, regexp);
+  } else {
+    printf(ANSI_COLOR_RED "NOT OK:" ANSI_COLOR_RESET " %s does not match %s\n", input, regexp);
+  }
+
+
 
 
   free(regexp);
   destroy_nfa(nfa);
 }
 
-const char* preprocess(const char* s) {
+char* preprocess(const char* s) {
 
   if(s[strlen(s) - 1] == ')' && s[0] == '(') {
     char* dyn_alloc = malloc(strlen(s) + 1);
