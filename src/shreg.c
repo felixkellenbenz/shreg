@@ -16,18 +16,19 @@ int main(int argc, char** argv) {
   if (argc < 3) {
     printf(ANSI_COLOR_RED "usage error:" ANSI_COLOR_RESET);
     printf(" please provide a regex and a string\n");
+    return 0;
   }  
 
   char* regexp = preprocess(argv[1]);
-  const char* input = argv[2];
   state* nfa = assemble_nfa(regexp);
-  if (match_nfa(nfa, input)) {
-    printf(ANSI_COLOR_GREEN "OK:" ANSI_COLOR_RESET " %s matches %s\n", input, regexp);
-  } else {
-    printf(ANSI_COLOR_RED "NOT OK:" ANSI_COLOR_RESET " %s does not match %s\n", input, regexp);
+
+  for (int i = 2; i < argc; i++) {
+    if (match_nfa(nfa, argv[i])) {
+      printf(ANSI_COLOR_GREEN "OK:" ANSI_COLOR_RESET " %s matches %s\n", argv[i], regexp);
+    } else {
+      printf(ANSI_COLOR_RED "NOT OK:" ANSI_COLOR_RESET " %s does not match %s\n", argv[i], regexp);
+    }
   }
-
-
 
 
   free(regexp);

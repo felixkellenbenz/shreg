@@ -29,6 +29,10 @@ static frag make_frag(state* start, state** out) {
   return f;
 }
 
+static inline char lookahead_one(const char* regexp, size_t len, size_t idx) {
+  return idx + 1 < len ? regexp[idx + 1] : 0;
+}
+
 static size_t count_levels(const char* regexp) {
   
   size_t max_level = 0, counter = 0;
@@ -47,36 +51,45 @@ static size_t count_levels(const char* regexp) {
   return max_level;
 }
 
-static void handle_closing_paren(frag_stack* stack, bool disjunction_flag) {
+static void concatenate(frag_stack* stack, char lookahead) {
+  frag expr_left, expr_right;
+   
+  if (lookahead == '*') {
+    return;
+  }
+
+  stack_pop(stack, &expr_right);
+  stack_pop(stack, &expr_left);
+  
+  *expr_left.out = expr_right.start;
+
+  stack_push(stack, make_frag(expr_left.start, expr_right.out));
+}
+
+static void handle_closing_paren(frag_stack* stack, bool disjunction_flag, char lookahead) {
   frag expr_left, expr_right;
   state* s;
 
-  stack_pop(stack, &expr_right);
-  stack_pop(stack, &expr_left); 
+  if (disjunction_flag) {
+    stack_pop(stack, &expr_right);
+    stack_pop(stack, &expr_left);
 
-  if (!disjunction_flag) {
-    *expr_left.out = expr_right.start;
+    s = make_state(0, EPS_SPLIT, expr_right.start, expr_left.start);
+    state* ending = make_state(0, EPS_SINGLE, NULL, NULL);
 
-    stack_push(stack, make_frag(expr_left.start, expr_right.out));
-  } else {
-    frag before;
-    stack_pop(stack, &before);
-
-    state* ending = make_state(0, EPS_SINGLE, NULL, NULL);         
-
-    s = make_state(0, EPS_SPLIT, expr_left.start, expr_right.start);          
-
-    *before.out = s;  
     *expr_left.out = ending;
     *expr_right.out = ending;
-
-    stack_push(stack, make_frag(before.start, &ending->out_left));
+  
+    stack_push(stack, make_frag(s,  &ending->out_left));
   }
+
+  concatenate(stack, lookahead); 
 }
 
 // TODO: Handle cases where the stack is empty 
 //       - validate regex before, so stack is never empty
-//       - fix precedence issue, currently concat has priority over *
+
+// This method expects a valid regex
 state* assemble_nfa(const char* regexp) {
 
   size_t len = strlen(regexp);  
@@ -94,38 +107,38 @@ state* assemble_nfa(const char* regexp) {
     switch (regexp[i]) {
       case '(': 
         current_level++;
-        s = make_state(0, EPS_SINGLE, NULL, NULL);
-       
-        stack_push(&stack, make_frag(s, &s->out_left)); 
+        s = make_state(0, EPS_SINGLE, NULL, NULL); 
 
+        stack_push(&stack, make_frag(s, &s->out_left)); 
         break;
       case ')':
-        handle_closing_paren(&stack, disjunction_flags[current_level]);
-        disjunction_flags[current_level--] = 0;
+        handle_closing_paren(&stack, disjunction_flags[current_level],
+                             lookahead_one(regexp, len, i));
 
+        disjunction_flags[current_level--] = 0;
         break;
       case '|':
         s = make_state(0, EPS_SINGLE, NULL, NULL);
        
         stack_push(&stack, make_frag(s, &s->out_left)); 
         disjunction_flags[current_level] = 1;
-
         break;
       case '*': 
+        stack_pop(&stack, &expr_right);
         stack_pop(&stack, &expr_left);
 
-        s = make_state(0, EPS_SPLIT, expr_left.start, NULL);
+        s = make_state(0, EPS_SPLIT, expr_right.start, NULL);
+
+        *expr_right.out = s;
         *expr_left.out = s;
 
-        stack_push(&stack, make_frag(s, &s->out_right));
+        stack_push(&stack, make_frag(expr_left.start, &s->out_right));
         break;
       default:
-        s = make_state(regexp[i], SINGLE, NULL, NULL); 
-        
-        stack_pop(&stack, &expr_left);
-        *expr_left.out = s;
-        stack_push(&stack, make_frag(expr_left.start, &s->out_left));
-         
+        s = make_state(regexp[i], SINGLE, NULL, NULL);   
+        stack_push(&stack, make_frag(s, &s->out_left));
+
+        concatenate(&stack, lookahead_one(regexp, len, i)); 
         break;
     }
   }
